@@ -12,21 +12,21 @@ def ProgressBar(name, percent):
     stdout.write(name + "[%-20s] %d%%" % ('='*int(20*j), 100*j))
     stdout.flush()
 
-def ProcessTags(string):
-    result = []
+def ProcessTags(tags, string):
     for tag in re.findall("\\s\\#(\\w+)", string):
-        result.append(tag.lower())
-    return result
+        if not tag.lower() in tags:
+            tags.append(tag.lower())
 
 def ExtractDescription(string):
     description = re.search("\\s\\#description\(([^\)]+)", string, flags=re.IGNORECASE)
     if description:
         return description.group(1)
     # Create a description from any tags
-    list = ProcessTags(string)
-    if list:
+    tags = []
+    ProcessTags(tags, string)
+    if tags:
         description = ""
-        for item in list:
+        for item in tags:
             if item != "description":
                 if description != "":
                     description += " "
@@ -72,7 +72,9 @@ def ParseEndpoint(endpoint, target, isUsername):
         log.write("Ignoring following files due to #noindex\n")
         for i in range(len(projects) - 1, -1, -1):
             project = projects[i]
-            tags = ProcessTags(project["description"]) + ProcessTags(project["instructions"])
+            tags = []
+            ProcessTags(tags, project["description"])
+            ProcessTags(tags, project["instructions"])
             if "noindex" in tags:
                 del projects[i]
                 log.write("\t" + str(project["title"].encode('ascii', "ignore"), "ascii") + "\n")
@@ -146,7 +148,9 @@ def ParseEndpoint(endpoint, target, isUsername):
                 output.write(project["history"]["shared"] + "\n")
                 output.write(str(project["stats"]["views"]) + "\n")
                 output.write(str(project["stats"]["loves"]) + "\n")
-                tags = ProcessTags(project["description"]) + ProcessTags(project["instructions"])
+                tags = []
+                ProcessTags(tags, project["description"])
+                ProcessTags(tags, project["instructions"])
                 tagcount = 0
                 for tag in tags:
                     if tag != "description":
@@ -176,7 +180,7 @@ def ParseEndpoint(endpoint, target, isUsername):
             log.write(names)
         log.write("-------------\n\n")
 
-        log.write("Unknown tages in following files\n")
+        log.write("Unknown tags in following files\n")
         for names in unknowntags:
             log.write(names)
         log.write("--------------------------------\n\n")
