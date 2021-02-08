@@ -1,9 +1,9 @@
 import hashlib
 import pathlib
-import zipfile
 import re
 import glob
 import os
+import shutil
 
 # We've already created all the assets and data required (in a temporary folder) so now we need to process them into an sb3 file
 #
@@ -27,8 +27,7 @@ import os
 def BuildSB3():
 
     # Extract the full project file to a temporary folder
-    with zipfile.ZipFile("Profile Page.sb3") as myzip:
-        myzip.extractall("temp")
+    shutil.unpack_archive("Profile Page.sb3", "temp", "zip")
 
     # Load the JSON file into memory
     with open('temp/project.json', 'r') as file:
@@ -39,9 +38,6 @@ def BuildSB3():
     m1 = reg.search(project)
     reg = re.compile('\]')
     m2 = reg.search(project, m1.end())
-    newProject = project[:m1.end()] + project[m2.start():]
-
-    input()
 
     # Remove the associated files from the temp folder
     pos = 0
@@ -51,13 +47,13 @@ def BuildSB3():
         thisFile = reg.search(removalSection, pos)
         if thisFile == None:
             break
-        os.remove("temp/" + thisFile.group(1))
+        if pathlib.Path("temp/" + thisFile.group(1)).is_file():
+            os.remove("temp/" + thisFile.group(1))
         pos = thisFile.end()
 
-    input()
-
     # Scan through thumb*, description* and title* files, calculate their MD5s, build a table and rename the files
-    allFiles = {}
+    allDigests = []
+    allFiles = []
     imageFiles = glob.glob('temp/thumb*.*')
     imageFiles += glob.glob('temp/description*.*')
     imageFiles += glob.glob('temp/title*.*')
@@ -65,10 +61,33 @@ def BuildSB3():
         md5_hash = hashlib.md5()
         tempFile = open(file, "rb")
         tempContent = tempFile.read()
+        tempFile.close()
         md5_hash.update(tempContent)
         digest = md5_hash.hexdigest()
-        allFiles[digest] = file
-        os.rename(file, "temp/" + digest + pathlib.Path(file).suffix)
+        allDigests.append(digest)
+        allFiles.append(file)
+        if not pathlib.Path("temp/" + digest + pathlib.Path(file).suffix).is_file():
+            os.rename(file, "temp/" + digest + pathlib.Path(file).suffix)
+        else:
+            os.remove(file)
 
-    # with open('test.txt', 'w') as file:
-    #    file.write(newProject)
+    # Create the text that needs inserting into the thumbs sprite in the json to add the new image files to it
+    text = ''
+    for i in range(0, len(allFiles)):
+        if pathlib.Path(allFiles[i]).suffix == ".png":
+            text += ',{"assetId":"' + allDigests[i] + '","name":"' + pathlib.Path(allFiles[i]).name + '","bitmapResolution":2,"md5ext":"' + allDigests[i] + '.png","dataFormat":"png","rotationCenterX":160,"rotationCenterY":120}'
+        elif pathlib.Path(allFiles[i]).suffix == ".svg":
+            text += ',{"assetId":"' + allDigests[i] + '","name":"' + pathlib.Path(allFiles[i]).name + '","bitmapResolution":1,"md5ext":"' + allDigests[i] + '.svg","dataFormat":"svg","rotationCenterX":320,"rotationCenterY":240}'
+        else:
+            raise Exception("Unexpected file type")
+
+    # Insert the new image data into the json file
+    newProject = project[:m1.end()] + text + project[m2.start():]
+
+    # Overwrite the json file with the new one
+    with open('project.json', 'w') as file:
+        file.write(newProject)
+
+    # Compress folder to zipfile and rename with sb3 extension
+    shutil.make_archive("upload", "zip", "temp")
+    os.rename("upload.zip", "upload.sb3")
