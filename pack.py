@@ -1,6 +1,9 @@
 import hashlib
+import pathlib
 import zipfile
 import re
+import glob
+import os
 
 # We've already created all the assets and data required (in a temporary folder) so now we need to process them into an sb3 file
 #
@@ -20,11 +23,12 @@ import re
 #   11) Allow control over the animated RokCoder tile being used in the project (as either a png or gif file of specified dimensions)
 #   12) Add a new tag that can be used to dictate which thumbnails will be used to automatically build a GIF file
 
+
 def BuildSB3():
 
     # Extract the full project file to a temporary folder
-    #with zipfile.ZipFile("Profile Page.sb3") as myzip:
-    #    myzip.extractall("temp")
+    with zipfile.ZipFile("Profile Page.sb3") as myzip:
+        myzip.extractall("temp")
 
     # Load the JSON file into memory
     with open('temp/project.json', 'r') as file:
@@ -37,6 +41,8 @@ def BuildSB3():
     m2 = reg.search(project, m1.end())
     newProject = project[:m1.end()] + project[m2.start():]
 
+    input()
+
     # Remove the associated files from the temp folder
     pos = 0
     removalSection = project[m1.end():m2.start()]
@@ -45,15 +51,24 @@ def BuildSB3():
         thisFile = reg.search(removalSection, pos)
         if thisFile == None:
             break
-        print(thisFile.group(1)) #TODO - delete this file
+        os.remove("temp/" + thisFile.group(1))
         pos = thisFile.end()
 
+    input()
+
     # Scan through thumb*, description* and title* files, calculate their MD5s, build a table and rename the files
+    allFiles = {}
+    imageFiles = glob.glob('temp/thumb*.*')
+    imageFiles += glob.glob('temp/description*.*')
+    imageFiles += glob.glob('temp/title*.*')
+    for file in imageFiles:
+        md5_hash = hashlib.md5()
+        tempFile = open(file, "rb")
+        tempContent = tempFile.read()
+        md5_hash.update(tempContent)
+        digest = md5_hash.hexdigest()
+        allFiles[digest] = file
+        os.rename(file, "temp/" + digest + pathlib.Path(file).suffix)
 
-
-    #with open('test.txt', 'w') as file:
+    # with open('test.txt', 'w') as file:
     #    file.write(newProject)
-
-
-
-BuildSB3()

@@ -52,8 +52,8 @@ def ParseEndpoint(endpoint, target, isUsername):
     offset = 0
     progress = 0
 
-    Path(pathname).mkdir(exist_ok=True)
-    path = Path(pathname)
+    Path("temp").mkdir(exist_ok=True)
+    path = Path("temp")
 
     # Pull the data for all of the user's projects
 
@@ -211,7 +211,7 @@ def PullAssets():
         while True:
             targetType = input("Is this (1) a username or (2) a studio?")
             if targetType == "1":
-                ParseEndPoint(userEndpoint, target, True)
+                ParseEndpoint(userEndpoint, target, True)
                 break
             elif targetType =="2":
                 ParseEndpoint(studioEndpoint, target, False)
