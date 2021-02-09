@@ -24,7 +24,7 @@ import shutil
 #   12) Add a new tag that can be used to dictate which thumbnails will be used to automatically build a GIF file
 
 
-def BuildSB3():
+def BuildSB3(profileData):
 
     # Extract the full project file to a temporary folder
     shutil.unpack_archive("Profile Page.sb3", "temp", "zip")
@@ -82,7 +82,14 @@ def BuildSB3():
             raise Exception("Unexpected file type")
 
     # Insert the new image data into the json file
-    newProject = project[:m1.end()] + text + project[m2.start():]
+    project = project[:m1.end()] + text + project[m2.start():]
+
+    # Locate the profileData list definition in the JSON and replace it with the new profileData
+    reg = re.compile('(?<!"name:\[")"profileData",\[')
+    m1 = reg.search(project)
+    reg = re.compile('\]')
+    m2 = reg.search(project, m1.end())
+    project = project[:m1.end()] + profileData + project[m2.start():]
 
     # Overwrite the json file with the new one
     with open('project.json', 'w') as file:

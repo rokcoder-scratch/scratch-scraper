@@ -5,6 +5,8 @@ import textwrap
 from pathlib import Path
 from sys import stdout
 
+profileData = []
+
 def ProgressBar(name, percent):
     n = 100
     j = percent / n
@@ -54,6 +56,12 @@ def ParseEndpoint(endpoint, target, isUsername):
 
     Path("temp").mkdir(exist_ok=True)
     path = Path("temp")
+
+    # Empty the temp folder if it isn't already
+    #TODO - We should allow the user to bail if they don't want the folder to be emptied
+    files = glob.glob(path.joinpath("*"))
+    for f in files:
+        os.remove(f)
 
     # Pull the data for all of the user's projects
 
@@ -137,43 +145,41 @@ def ParseEndpoint(endpoint, target, isUsername):
     unknowntags = []
     with (path / "../log.txt").open("a") as log:
         log.write("Tags on files\n")
-        with (path / "profile-data.txt").open("w") as output:
         
-            # output.write(str(version) + "\n")
-            output.write(str(len(projects)) + "\n")
+        profileData.appendstr(len(projects)))
 
-            for project in projects:
-                output.write(str(project["title"].encode('ascii', "ignore"), "ascii") + "\n")
-                output.write(str(project["id"]) + "\n")
-                output.write(project["history"]["shared"] + "\n")
-                output.write(str(project["stats"]["views"]) + "\n")
-                output.write(str(project["stats"]["loves"]) + "\n")
-                tags = []
-                ProcessTags(tags, project["description"])
-                ProcessTags(tags, project["instructions"])
-                tagcount = 0
-                for tag in tags:
-                    if tag != "description":
-                        if tag in validtags:
-                            tagcount += 1
-                        else:
-                            unknowntags.append("\t" + str(project["title"].encode('ascii', "ignore"), "ascii") + ": " + tag + "\n")
-                output.write(str(tagcount) + "\n")
-                if tagcount > 0:
-                    log.write("\t" + str(project["title"].encode('ascii', "ignore"), "ascii") + ": ")
-                else:
-                    taglessfiles.append("\t" + str(project["title"].encode('ascii', "ignore"), "ascii") + "\n")
-                c = 0
-                for tag in tags:
-                    if tag != "description" and tag in validtags:
-                        c += 1
-                        output.write(tag + "\n")
-                        if c > 1:
-                            log.write(", ")
-                        log.write(tag)
-                if tagcount > 0:
-                    log.write("\n")
-            log.write("-------------\n\n")
+        for project in projects:
+            profileData.append(str(project["title"].encode('ascii', "ignore"), "ascii"))
+            profileData.append(str(project["id"]))
+            profileData.append(project["history"]["shared"])
+            profileData.append(str(project["stats"]["views"]))
+            profileData.append(str(project["stats"]["loves"]))
+            tags = []
+            ProcessTags(tags, project["description"])
+            ProcessTags(tags, project["instructions"])
+            tagcount = 0
+            for tag in tags:
+                if tag != "description":
+                    if tag in validtags:
+                        tagcount += 1
+                    else:
+                        unknowntags.append("\t" + str(project["title"].encode('ascii', "ignore"), "ascii") + ": " + tag + "\n")
+            profileData.append(str(tagcount))
+            if tagcount > 0:
+                log.write("\t" + str(project["title"].encode('ascii', "ignore"), "ascii") + ": ")
+            else:
+                taglessfiles.append("\t" + str(project["title"].encode('ascii', "ignore"), "ascii") + "\n")
+            c = 0
+            for tag in tags:
+                if tag != "description" and tag in validtags:
+                    c += 1
+                    profileData.append(tag)
+                    if c > 1:
+                        log.write(", ")
+                    log.write(tag)
+            if tagcount > 0:
+                log.write("\n")
+        log.write("-------------\n\n")
 
         log.write("Tagless files\n")
         for names in taglessfiles:
@@ -216,3 +222,6 @@ def PullAssets():
             elif targetType =="2":
                 ParseEndpoint(studioEndpoint, target, False)
                 break
+
+def GetProfileData():
+    return ','.join(profileData)
