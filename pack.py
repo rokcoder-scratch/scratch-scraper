@@ -24,13 +24,15 @@ import shutil
 #   12) Add a new tag that can be used to dictate which thumbnails will be used to automatically build a GIF file
 
 
-def BuildSB3(profileData):
+def BuildSB3(tmpdirname, profileData):
+
+    tmppath = pathlib.Path(tmpdirname)
 
     # Extract the full project file to a temporary folder
-    shutil.unpack_archive("Profile Page.sb3", "temp", "zip")
+    shutil.unpack_archive("Profile Page.sb3", tmppath, "zip")
 
     # Load the JSON file into memory
-    with open('temp/project.json', 'r') as file:
+    with open(tmppath.joinpath("project.json"), 'r') as file:
         project = file.readline()
 
     # Remove all costumes in thumbs sprite other than the initial "Don't delete!" costume
@@ -47,16 +49,16 @@ def BuildSB3(profileData):
         thisFile = reg.search(removalSection, pos)
         if thisFile == None:
             break
-        if pathlib.Path("temp/" + thisFile.group(1)).is_file():
-            os.remove("temp/" + thisFile.group(1))
+        if tmppath.joinpath(thisFile.group(1)).is_file():
+            os.remove(tmppath.joinpath(thisFile.group(1)))
         pos = thisFile.end()
 
     # Scan through thumb*, description* and title* files, calculate their MD5s, build a table and rename the files
     allDigests = []
     allFiles = []
-    imageFiles = glob.glob('temp/thumb*.*')
-    imageFiles += glob.glob('temp/description*.*')
-    imageFiles += glob.glob('temp/title*.*')
+    imageFiles = glob.glob(str(tmppath.joinpath('thumb*.*')))
+    imageFiles += glob.glob(str(tmppath.joinpath('description*.*')))
+    imageFiles += glob.glob(str(tmppath.joinpath('title*.*')))
     for file in imageFiles:
         md5_hash = hashlib.md5()
         tempFile = open(file, "rb")
@@ -66,8 +68,8 @@ def BuildSB3(profileData):
         digest = md5_hash.hexdigest()
         allDigests.append(digest)
         allFiles.append(file)
-        if not pathlib.Path("temp/" + digest + pathlib.Path(file).suffix).is_file():
-            os.rename(file, "temp/" + digest + pathlib.Path(file).suffix)
+        if not tmppath.joinpath(digest + pathlib.Path(file).suffix).is_file():
+            os.rename(file, tmppath.joinpath(digest + pathlib.Path(file).suffix))
         else:
             os.remove(file)
 
@@ -75,9 +77,9 @@ def BuildSB3(profileData):
     text = ''
     for i in range(0, len(allFiles)):
         if pathlib.Path(allFiles[i]).suffix == ".png":
-            text += ',{"assetId":"' + allDigests[i] + '","name":"' + pathlib.Path(allFiles[i]).name + '","bitmapResolution":2,"md5ext":"' + allDigests[i] + '.png","dataFormat":"png","rotationCenterX":160,"rotationCenterY":120}'
+            text += ',{"assetId":"' + allDigests[i] + '","name":"' + pathlib.Path(allFiles[i]).stem + '","bitmapResolution":2,"md5ext":"' + allDigests[i] + '.png","dataFormat":"png","rotationCenterX":160,"rotationCenterY":120}'
         elif pathlib.Path(allFiles[i]).suffix == ".svg":
-            text += ',{"assetId":"' + allDigests[i] + '","name":"' + pathlib.Path(allFiles[i]).name + '","bitmapResolution":1,"md5ext":"' + allDigests[i] + '.svg","dataFormat":"svg","rotationCenterX":320,"rotationCenterY":240}'
+            text += ',{"assetId":"' + allDigests[i] + '","name":"' + pathlib.Path(allFiles[i]).stem + '","bitmapResolution":1,"md5ext":"' + allDigests[i] + '.svg","dataFormat":"svg","rotationCenterX":320,"rotationCenterY":240}'
         else:
             raise Exception("Unexpected file type")
 
@@ -92,9 +94,11 @@ def BuildSB3(profileData):
     project = project[:m1.end()] + profileData + project[m2.start():]
 
     # Overwrite the json file with the new one
-    with open('project.json', 'w') as file:
-        file.write(newProject)
+    with open(tmppath.joinpath('project.json'), 'w') as file:
+        file.write(project)
 
     # Compress folder to zipfile and rename with sb3 extension
-    shutil.make_archive("upload", "zip", "temp")
+    if pathlib.Path('upload.sb3').is_file():
+        os.remove("upload.sb3")
+    shutil.make_archive("upload", "zip", tmppath)
     os.rename("upload.zip", "upload.sb3")

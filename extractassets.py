@@ -4,6 +4,8 @@ import re
 import textwrap
 from pathlib import Path
 from sys import stdout
+import glob
+import os
 
 profileData = []
 
@@ -38,7 +40,7 @@ def ExtractDescription(string):
 
     return "Description to be added..."
 
-def ParseEndpoint(endpoint, target, isUsername):
+def ParseEndpoint(tmpdirname, endpoint, target, isUsername):
     validtags = [ "3d", "adventures", "arcade", "music", "retro", "techdemo", "toolkit", "tutorials", "watchable", "games", "art", "animations", "stories" ]
 
     if isUsername:
@@ -54,14 +56,7 @@ def ParseEndpoint(endpoint, target, isUsername):
     offset = 0
     progress = 0
 
-    Path("temp").mkdir(exist_ok=True)
-    path = Path("temp")
-
-    # Empty the temp folder if it isn't already
-    #TODO - We should allow the user to bail if they don't want the folder to be emptied
-    files = glob.glob(path.joinpath("*"))
-    for f in files:
-        os.remove(f)
+    path = Path(tmpdirname)
 
     # Pull the data for all of the user's projects
 
@@ -146,12 +141,12 @@ def ParseEndpoint(endpoint, target, isUsername):
     with (path / "../log.txt").open("a") as log:
         log.write("Tags on files\n")
         
-        profileData.appendstr(len(projects)))
+        profileData.append(str(len(projects)))
 
         for project in projects:
-            profileData.append(str(project["title"].encode('ascii', "ignore"), "ascii"))
+            profileData.append('"' + str(project["title"].encode('ascii', "ignore"), "ascii") + '"'.replace('[', '(').replace(']', ')'))
             profileData.append(str(project["id"]))
-            profileData.append(project["history"]["shared"])
+            profileData.append('"' + project["history"]["shared"] + '"')
             profileData.append(str(project["stats"]["views"]))
             profileData.append(str(project["stats"]["loves"]))
             tags = []
@@ -173,7 +168,7 @@ def ParseEndpoint(endpoint, target, isUsername):
             for tag in tags:
                 if tag != "description" and tag in validtags:
                     c += 1
-                    profileData.append(tag)
+                    profileData.append('"' + tag + '"')
                     if c > 1:
                         log.write(", ")
                     log.write(tag)
@@ -195,7 +190,7 @@ def ParseEndpoint(endpoint, target, isUsername):
 
     print("\nView log.txt for parsing information")
 
-def PullAssets():
+def PullAssets(tmpdirname):
     target = input("Enter username or studio number:")
     userEndpoint = "https://api.scratch.mit.edu/users/" + target
     studioEndpoint = "https://api.scratch.mit.edu/studios/" + target
@@ -208,19 +203,19 @@ def PullAssets():
         validStudio = response.status_code == 200
 
     if validStudio and not validUser:
-        ParseEndpoint(studioEndpoint, target, False)
+        ParseEndpoint(tmpdirname, studioEndpoint, target, False)
     elif not validStudio and validUser:
-        ParseEndpoint(userEndpoint, target, True)
+        ParseEndpoint(tmpdirname, userEndpoint, target, True)
     elif not (validStudio or validUser):
         print('"' + target + '" is not a valid username or studio id')
     else:
         while True:
             targetType = input("Is this (1) a username or (2) a studio?")
             if targetType == "1":
-                ParseEndpoint(userEndpoint, target, True)
+                ParseEndpoint(tmpdirname, userEndpoint, target, True)
                 break
             elif targetType =="2":
-                ParseEndpoint(studioEndpoint, target, False)
+                ParseEndpoint(tmpdirname, studioEndpoint, target, False)
                 break
 
 def GetProfileData():
