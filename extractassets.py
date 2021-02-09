@@ -144,7 +144,7 @@ def ParseEndpoint(tmpdirname, endpoint, target, isUsername):
         profileData.append(str(len(projects)))
 
         for project in projects:
-            profileData.append('"' + str(project["title"].encode('ascii', "ignore"), "ascii") + '"'.replace('[', '(').replace(']', ')'))
+            profileData.append('"' + str(project["title"].encode('ascii', "ignore"), "ascii") + '"')
             profileData.append(str(project["id"]))
             profileData.append('"' + project["history"]["shared"] + '"')
             profileData.append(str(project["stats"]["views"]))

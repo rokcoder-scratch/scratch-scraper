@@ -1,6 +1,6 @@
 import hashlib
 import pathlib
-import re
+import regex
 import glob
 import os
 import shutil
@@ -36,15 +36,15 @@ def BuildSB3(tmpdirname, profileData):
         project = file.readline()
 
     # Remove all costumes in thumbs sprite other than the initial "Don't delete!" costume
-    reg = re.compile('"name":"Don\'t delete!"[^\}]+\}')
+    reg = regex.compile(r'"name":"Don\'t delete!"[^}]+}')
     m1 = reg.search(project)
-    reg = re.compile('\]')
+    reg = regex.compile(']')
     m2 = reg.search(project, m1.end())
 
     # Remove the associated files from the temp folder
     pos = 0
     removalSection = project[m1.end():m2.start()]
-    reg = re.compile('\"md5ext\":\"([^\"]*)\"')
+    reg = regex.compile(r'"md5ext":"([^"]*)"')
     while(True):
         thisFile = reg.search(removalSection, pos)
         if thisFile == None:
@@ -77,9 +77,9 @@ def BuildSB3(tmpdirname, profileData):
     text = ''
     for i in range(0, len(allFiles)):
         if pathlib.Path(allFiles[i]).suffix == ".png":
-            text += ',{"assetId":"' + allDigests[i] + '","name":"' + pathlib.Path(allFiles[i]).stem + '","bitmapResolution":2,"md5ext":"' + allDigests[i] + '.png","dataFormat":"png","rotationCenterX":160,"rotationCenterY":120}'
+            text += ',{"assetId":"' + allDigests[i] + '","name":"' + pathlib.Path(allFiles[i]).stem + '","bitmapResolution":1,"md5ext":"' + allDigests[i] + '.png","dataFormat":"png","rotationCenterX":80,"rotationCenterY":60}'
         elif pathlib.Path(allFiles[i]).suffix == ".svg":
-            text += ',{"assetId":"' + allDigests[i] + '","name":"' + pathlib.Path(allFiles[i]).stem + '","bitmapResolution":1,"md5ext":"' + allDigests[i] + '.svg","dataFormat":"svg","rotationCenterX":320,"rotationCenterY":240}'
+            text += ',{"assetId":"' + allDigests[i] + '","name":"' + pathlib.Path(allFiles[i]).stem + '","bitmapResolution":1,"md5ext":"' + allDigests[i] + '.svg","dataFormat":"svg","rotationCenterX":240,"rotationCenterY":180}'
         else:
             raise Exception("Unexpected file type")
 
@@ -87,11 +87,16 @@ def BuildSB3(tmpdirname, profileData):
     project = project[:m1.end()] + text + project[m2.start():]
 
     # Locate the profileData list definition in the JSON and replace it with the new profileData
-    reg = re.compile('(?<!"name:\[")"profileData",\[')
+    #reg = re.compile('(?<!"name:\[")"profileData",\[')
+    #m1 = reg.search(project)
+    #reg = re.compile('\]')
+    #m2 = reg.search(project, m1.end())
+
+    reg = regex.compile('(?<!"name:\[")"profileData",')
     m1 = reg.search(project)
-    reg = re.compile('\]')
-    m2 = reg.search(project, m1.end())
-    project = project[:m1.end()] + profileData + project[m2.start():]
+    reg = regex.compile('\[(?>[^\[\]]+|(?R))*\]')
+    m2 = reg.match(project, m1.end())
+    project = project[:m1.end()] + '[' + profileData + ']' + project[m2.end():]
 
     # Overwrite the json file with the new one
     with open(tmppath.joinpath('project.json'), 'w') as file:
