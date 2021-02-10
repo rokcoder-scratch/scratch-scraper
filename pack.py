@@ -22,7 +22,7 @@ import shutil
 #   10) Allow control over the music being used in the project (as an mp3 file)
 #   11) Allow control over the animated RokCoder tile being used in the project (as either a png or gif file of specified dimensions)
 #   12) Add a new tag that can be used to dictate which thumbnails will be used to automatically build a GIF file
-
+#   13) Allow a background png to be specified
 
 def BuildSB3(tmpdirname, profileData):
 
@@ -87,11 +87,6 @@ def BuildSB3(tmpdirname, profileData):
     project = project[:m1.end()] + text + project[m2.start():]
 
     # Locate the profileData list definition in the JSON and replace it with the new profileData
-    #reg = re.compile('(?<!"name:\[")"profileData",\[')
-    #m1 = reg.search(project)
-    #reg = re.compile('\]')
-    #m2 = reg.search(project, m1.end())
-
     reg = regex.compile('(?<!"name:\[")"profileData",')
     m1 = reg.search(project)
     reg = regex.compile('\[(?>[^\[\]]+|(?R))*\]')
